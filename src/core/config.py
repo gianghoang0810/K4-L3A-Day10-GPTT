@@ -5,7 +5,11 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 import os
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv(*args, **kwargs):
+        pass
 
 
 @dataclass(frozen=True)
@@ -40,6 +44,10 @@ class Paths:
     repaired_metrics: Path
     repaired_answers: Path
     comparison_report: Path
+
+    @property
+    def test_set_json(self) -> Path:
+        return self.eval_testset
 
 
 @dataclass(frozen=True)

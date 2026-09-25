@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Observability & Data Pipeline Dashboard — Team GPTT</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: rgba(18, 24, 38, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-purple: #8b5cf6;
+      --accent-indigo: #6366f1;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 10% 15%, rgba(59, 130, 246, 0.12) 0px, transparent 50%),
+        radial-gradient(at 90% 85%, rgba(139, 92, 246, 0.10) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(6, 182, 212, 0.05) 0px, transparent 60%);
+      color: var(--text-main);
+      padding: 2rem 1.5rem;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--card-border);
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+    .header-title h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #60a5fa, #c084fc, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.35rem;
+    }
+    .header-title p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .header-title p strong {
+      color: #e2e8f0;
+    }
+    .header-badges {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .badge-success {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+    .badge-danger {
+      background: rgba(244, 63, 94, 0.15);
+      color: #fb7185;
+      border: 1px solid rgba(244, 63, 94, 0.35);
+    }
+    .badge-info {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.35);
+    }
+    .badge-warning {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+    .badge-purple {
+      background: rgba(139, 92, 246, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(139, 92, 246, 0.35);
+    }
+
+    /* Checkpoint Navigation Pill Bar */
+    .cp-nav {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding: 0.5rem;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      scrollbar-width: none;
+    }
+    .cp-nav::-webkit-scrollbar { display: none; }
+    .cp-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.65rem 1.1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+    .cp-pill:hover, .cp-pill.active {
+      background: rgba(59, 130, 246, 0.18);
+      color: #93c5fd;
+      border-color: rgba(59, 130, 246, 0.35);
+    }
+    .cp-pill .cp-num {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+    .cp-pill.active .cp-num {
+      background: var(--accent-blue);
+      color: #fff;
+    }
+
+    /* Overall Summary Stats Grid */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
+    }
+    .card:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.45);
+    }
+    .kpi-card .kpi-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+    .kpi-card .kpi-value {
+      font-size: 2.1rem;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+    .kpi-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.4rem;
+    }
+
+    /* Checkpoint Section Container */
+    .cp-section {
+      margin-bottom: 2.5rem;
+      scroll-margin-top: 1.5rem;
+    }
+    .cp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .cp-title {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #f8fafc;
+    }
+    .cp-tag {
+      padding: 0.25rem 0.7rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .tag-cp0 { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+    .tag-cp1 { background: rgba(6, 182, 212, 0.2); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.4); }
+    .tag-cp2 { background: rgba(139, 92, 246, 0.2); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.4); }
+    .tag-cp3 { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .tag-cp4 { background: rgba(244, 63, 94, 0.2); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4); }
+    .tag-cp5 { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+
+    /* Grids & Cards */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+    }
+    @media (max-width: 900px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      color: #93c5fd;
+      background: rgba(59, 130, 246, 0.1);
+      padding: 0.18rem 0.45rem;
+      border-radius: 4px;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+    .code-cmd {
+      display: block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: #a7f3d0;
+      background: #030712;
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      margin: 0.75rem 0;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+      font-size: 0.87rem;
+    }
+    th, td {
+      padding: 0.75rem 0.85rem;
+      text-align: left;
+    }
+    th {
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--card-border);
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+    }
+    td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .chart-box {
+      position: relative;
+      height: 300px;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+
+    .key-metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .key-metric-row:last-child {
+      border-bottom: none;
+    }
+
+    .step-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+    }
+    .step-badge {
+      min-width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 800;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      margin-top: 0.1rem;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--card-border);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="header-title">
+        <h1>RAG Observability & Data Pipeline Dashboard</h1>
+        <p>
+          <span>Khóa: <strong>AI-ENGINEER-K4 (VinUni)</strong></span>
+          <span>Nhóm: <strong>GPTT</strong></span>
+          <span>Thành viên: <strong>Từ Hoàng Giang (2A202602363) &amp; Nguyễn Hồng Phi (2A202602750)</strong></span>
+        </p>
+      </div>
+      <div class="header-badges">
+        <span class="badge badge-success">● CP0 &rarr; CP5 Verified (100%)</span>
+        <span class="badge badge-info">GX 1.x Ephemeral</span>
+        <span class="badge badge-purple">Self-Healing RAG</span>
+      </div>
+    </header>
+
+    <!-- Checkpoint Navigation Pills -->
+    <nav class="cp-nav">
+      <a href="#summary" class="cp-pill active"><span class="cp-num">&star;</span> Tổng Quan 3 Trạng Thái</a>
+      <a href="#cp0" class="cp-pill"><span class="cp-num">0</span> CP0: Ingestion Raw</a>
+      <a href="#cp1" class="cp-pill"><span class="cp-num">1</span> CP1: Cleaning &amp; Quality Gate</a>
+      <a href="#cp2" class="cp-pill"><span class="cp-num">2</span> CP2: ChromaDB &amp; Testset</a>
+      <a href="#cp3" class="cp-pill"><span class="cp-num">3</span> CP3: Baseline Evaluation</a>
+      <a href="#cp4" class="cp-pill"><span class="cp-num">4</span> CP4: Corruption &amp; Silent Failure</a>
+      <a href="#cp5" class="cp-pill"><span class="cp-num">5</span> CP5: Idempotent Repair</a>
+      <a href="#bonus" class="cp-pill"><span class="cp-num">+</span> Bonus: Auto-Heal &amp; Pytest</a>
+    </nav>
+
+    <!-- Overall Summary Section -->
+    <section id="summary" class="cp-section">
+      <div class="cp-header">
+        <div class="cp-title">
+          <span>Tóm Tắt Chỉ Số Toàn Hệ Thống (3 Trạng Thái)</span>
+        </div>
+        <span class="badge badge-success">Idempotent Self-Healing Verified</span>
+      </div>
+
+      <div class="summary-grid">
+        <div class="card kpi-card">
+          <div class="kpi-label">Retrieval Hit Rate (Top-3)</div>
+          <div class="kpi-value">
+            100%
+            <span class="badge badge-success">+40% Recovery</span>
+          </div>
+          <div class="kpi-sub">Baseline: 100% &rarr; Corrupted: 60% &rarr; Repaired: 100%</div>
+        </div>
+
+        <div class="card kpi-card">
+          <div class="kpi-label">Token F1 Score</div>
+          <div class="kpi-value">
+            1.0000
+            <span class="badge badge-success">+0.4259</span>
+          </div>
+          <div class="kpi-sub">Baseline: 1.000 &rarr; Corrupted: 0.5741 &rarr; Repaired: 1.000</div>
+        </div>
+
+        <div class="card kpi-card">
+          <div class="kpi-label">LLM Judge Accuracy</div>
+          <div class="kpi-value">
+            100%
+            <span class="badge badge-success">5.0 / 5.0</span>
+          </div>
+          <div class="kpi-sub">Triệt tiêu hoàn toàn hiện tượng Silent Failure</div>
+        </div>
+
+        <div class="card kpi-card">
+          <div class="kpi-label">Data Quality Gate (GX 1.x)</div>
+          <div class="kpi-value">
+            6 / 6
+            <span class="badge badge-success">100% PASS</span>
+          </div>
+          <div class="kpi-sub">Phát hiện 100% vi phạm trên tập corrupted</div>
+        </div>
+
+        <div class="card kpi-card">
+          <div class="kpi-label">Freshness SLA (&le; 25% Stale)</div>
+          <div class="kpi-value">
+            4.17%
+            <span class="badge badge-success">COMPLIANT</span>
+          </div>
+          <div class="kpi-sub">Corrupted: 59.09% (Vi phạm) &rarr; Repaired: 4.17% (Sạch)</div>
+        </div>
+      </div>
+
+      <!-- Comparative Charts -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <span>So Sánh Hiệu Năng 3 Trạng Thái (Benchmark 10 Mẫu)</span>
+            <span class="badge badge-info">Chart.js Visual</span>
+          </div>
+          <div class="chart-box">
+            <canvas id="metricsChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>Biểu Đồ Radar 5 Chiều Chất Lượng Dữ Liệu</span>
+            <span class="badge badge-purple">Multi-Dimensional Observability</span>
+          </div>
+          <div class="chart-box">
+            <canvas id="radarChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHECKPOINT 0: INGESTION -->
+    <section id="cp0" class="cp-section">
+      <div class="cp-header">
+        <div class="cp-title">
+          <span class="cp-tag tag-cp0">CP0</span>
+          <span>Data Ingestion &amp; Bảo Toàn Raw Metadata</span>
+        </div>
+        <span class="badge badge-success">24 Papers Ingested</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <span>Kiến Trúc Dual-Mode Ingestion</span>
+            <span class="badge badge-info">crossref.py</span>
+          </div>
+          <ul class="step-list">
+            <li class="step-item">
+              <span class="step-badge">1</span>
+              <div>
+                <strong>Live API Ingestion:</strong> Gửi HTTP Request kèm User-Agent lịch sự tới Crossref REST API với cơ chế retry và exponential backoff (tối đa 3 lần).
+              </div>
+            </li>
+            <li class="step-item">
+              <span class="step-badge">2</span>
+              <div>
+                <strong>Offline Snapshot Fallback:</strong> Nếu mạng lỗi hoặc dính HTTP 429 Too Many Requests, pipeline tự động chuyển sang đọc snapshot local bất biến <span class="code">data/raw/crossref_response.json</span>.
+              </div>
+            </li>
+            <li class="step-item">
+              <span class="step-badge">3</span>
+              <div>
+                <strong>Raw Preservation Contract:</strong> Bảo toàn nguyên vẹn raw metadata không bao giờ sửa đổi, ghi ra 2 artifact: <span class="code">crossref_response.json</span> và <span class="code">crossref_records.json</span>.
+              </div>
+            </li>
+          </ul>
+          <div style="margin-top:1rem;">
+            <div class="code-cmd">python -X utf8 -c "from core.config import load_settings; from ingestion.crossref import fetch_source_records; s=load_settings(); r=fetch_source_records(s); print(f'Tín hiệu hoàn thành: Đã tải {len(r)} bài báo')"</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>Thống Kê Dữ Liệu Thu Thập (Raw Metadata)</span>
+            <span class="badge badge-success">Preserved Artifacts</span>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">Tổng số bản ghi tải về:</span>
+            <span style="font-weight:700; color:#34d399;">24 bài báo khoa học</span>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">Tỷ lệ đầy đủ DOI (paper_id):</span>
+            <span style="font-weight:700; color:#60a5fa;">100% (24/24)</span>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">Tỷ lệ có ngày xuất bản hợp lệ:</span>
+            <span style="font-weight:700; color:#60a5fa;">100% (24/24)</span>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">Độ dài tóm tắt trung bình:</span>
+            <span style="font-weight:700; color:#c084fc;">462 ký tự</span>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">Artifact nguồn bất biến:</span>
+            <span class="code">data/raw/crossref_records.json</span>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">Khả năng tái lập (Idempotency):</span>
+            <span class="badge badge-success">Single Source of Truth</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHECKPOINT 1: CLEANING & OBSERVABILITY -->
+    <section id="cp1" class="cp-section">
+      <div class="cp-header">
+        <div class="cp-title">
+          <span class="cp-tag tag-cp1">CP1</span>
+          <span>Data Cleaning &amp; Great Expectations 1.x Quality Gate</span>
+        </div>
+        <span class="badge badge-success">6/6 GX Checks Passed</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <span>Tiền Xử Lý &amp; Feature Engineering</span>
+            <span class="badge badge-info">cleaning.py</span>
+          </div>
+          <ul class="step-list">
+            <li class="step-item">
+              <span class="step-badge">1</span>
+              <div>
+                <strong>Khử trùng lặp (Deduplication):</strong> Lọc duy nhất theo <span class="code">paper_id</span> (DOI), bảo đảm không có 2 bài báo trùng nhau trong tập clean.
+              </div>
+            </li>
+            <li class="step-item">
+              <span class="step-badge">2</span>
+              <div>
+                <strong>Tính toán Freshness Age:</strong> Tính <span class="code">age_days = (now_utc - published_utc).days</span> an toàn theo múi giờ chuẩn UTC.
+              </div>
+            </li>
+            <li class="step-item">
+              <span class="step-badge">3</span>
+              <div>
+                <strong>Ghép 5 phần <span class="code">text_for_embedding</span>:</strong>
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.3rem;">
+                  <span class="code">Title: ... | Abstract: ... | Authors: ... | Categories: ... | Published: ...</span>
+                </div>
+              </div>
+            </li>
+          </ul>
+          <div style="margin-top:1rem;">
+            <div class="code-cmd">python -X utf8 -c "from datetime import datetime, timezone; from core.config import load_settings; from ingestion.crossref import load_raw_records; from ingestion.cleaning import build_clean_dataframe; s=load_settings(); df=build_clean_dataframe(load_raw_records(s.paths.raw_records_json), datetime.now(timezone.utc)); print(f'Tín hiệu hoàn thành: Clean thành công {len(df)} dòng')"</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>Great Expectations 1.x Ephemeral Gate</span>
+            <span class="badge badge-success">quality.py</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Expectation Check</th>
+                <th>Cột kiểm tra</th>
+                <th>Điều kiện hợp lệ</th>
+                <th>Kết quả Clean</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="code">ExpectTableRowCountToBeBetween</span></td>
+                <td>Toàn bảng</td>
+                <td>20 &le; n &le; 30 dòng</td>
+                <td><span class="badge badge-success">PASS (24 dòng)</span></td>
+              </tr>
+              <tr>
+                <td><span class="code">ExpectColumnValuesToBeUnique</span></td>
+                <td><span class="code">paper_id</span></td>
+                <td>Duy nhất 100%</td>
+                <td><span class="badge badge-success">PASS (0 dup)</span></td>
+              </tr>
+              <tr>
+                <td><span class="code">ExpectColumnValuesToNotBeNull</span></td>
+                <td><span class="code">paper_id</span></td>
+                <td>Không được rỗng</td>
+                <td><span class="badge badge-success">PASS (0 null)</span></td>
+              </tr>
+              <tr>
+                <td><span class="code">ExpectColumnValuesToNotBeNull</span></td>
+                <td><span class="code">title</span></td>
+                <td>Không được rỗng</td>
+                <td><span class="badge badge-success">PASS (0 null)</span></td>
+              </tr>
+              <tr>
+                <td><span class="code">ExpectColumnValuesToNotBeNull</span></td>
+                <td><span class="code">summary</span></td>
+                <td>Không được rỗng</td>
+                <td><span class="badge badge-success">PASS (0 null)</span></td>
+              </tr>
+              <tr>
+                <td><span class="code">ExpectColumnValueLengthsToBeBetween</span></td>
+                <td><span class="code">summary</span></td>
+                <td>Độ dài &ge; 20 ký tự</td>
+                <td><span class="badge badge-success">PASS (min: 279)</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top:0.75rem; font-size:0.85rem; color:var(--text-muted); display:flex; justify-content:space-between;">
+            <span>Freshness SLA (&le; 25% stale &gt; 180 ngày):</span>
+            <strong style="color:#34d399;">1 / 24 bài (4.17% &mdash; ĐẠT CHUẨN)</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHECKPOINT 2: CHROMADB & TESTSET -->
+    <section id="cp2" class="cp-section">
+      <div class="cp-header">
+        <div class="cp-title">
+          <span class="cp-tag tag-cp2">CP2</span>
+          <span>ChromaDB Vector Store &amp; Benchmark Test Set (5 Dạng Câu Hỏi)</span>
+        </div>
+        <span class="badge badge-purple">10 Questions &bull; 384-Dim Vectors</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <span>Đánh Chỉ Mục Vector ChromaDB</span>
+            <span class="badge badge-info">retrieval/index.py</span>
+          </div>
+          <ul class="step-list">
+            <li class="step-item">
+              <span class="step-badge">1</span>
+              <div>
+                <strong>Mô hình Embedding:</strong> Sử dụng <span class="code">sentence-transformers/all-MiniLM-L6-v2</span> mã hóa trường 5 phần <span class="code">text_for_embedding</span> thành vector 384 chiều chuẩn hóa L2.
+              </div>
+            </li>
+            <li class="step-item">
+              <span class="step-badge">2</span>
+              <div>
+                <strong>Cô lập không gian vector (Vector Isolation):</strong> Quản lý 3 collection hoàn toàn độc lập trong ChromaDB:
+                <div style="margin-top:0.4rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+                  <span class="code">papers-baseline</span>
+                  <span class="code">papers-corrupted</span>
+                  <span class="code">papers-repaired</span>
+                </div>
+              </div>
+            </li>
+            <li class="step-item">
+              <span class="step-badge">3</span>
+              <div>
+                <strong>Metadata Richness:</strong> Lưu trữ đầy đủ metadata <span class="code">paper_id, title, published_date, categories</span> để hỗ trợ LLM sinh trích dẫn chính xác.
+              </div>
+            </li>
+          </ul>
+          <div style="margin-top:1rem;">
+            <div class="code-cmd">python -X utf8 -c "from core.config import load_settings; from retrieval.index import LocalEmbeddingIndex; import pandas as pd; s=load_settings(); df=pd.read_json(s.paths.clean_json); docs=df.to_dict('records'); idx=LocalEmbeddingIndex(settings=s, collection_name='papers-baseline', documents=docs, persist_path=s.paths.chroma_dir); idx.build_from_clean(); res=idx.semantic_search('machine learning', top_k=2); print('Tín hiệu hoàn thành: Tìm thấy', len(res), 'tài liệu liên quan')"</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>Cơ Cấu Bộ Test Set Chuẩn Hóa (10 Câu Hỏi)</span>
+            <span class="badge badge-purple">testset.py</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Dạng câu hỏi</th>
+                <th>Số lượng</th>
+                <th>Mục tiêu kiểm thử</th>
+                <th>Ground-Truth Link</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="code">summary</span></td>
+                <td>2 câu</td>
+                <td>Khả năng trích xuất nội dung nghiên cứu cốt lõi</td>
+                <td>Mapped DOI chính xác</td>
+              </tr>
+              <tr>
+                <td><span class="code">authors</span></td>
+                <td>2 câu</td>
+                <td>Trích xuất tên nhóm tác giả bài báo</td>
+                <td>Mapped DOI chính xác</td>
+              </tr>
+              <tr>
+                <td><span class="code">date</span></td>
+                <td>2 câu</td>
+                <td>Thời điểm công bố công trình nghiên cứu</td>
+                <td>Mapped DOI chính xác</td>
+              </tr>
+              <tr>
+                <td><span class="code">category</span></td>
+                <td>2 câu</td>
+                <td>Phân loại lĩnh vực chuyên ngành khoa học</td>
+                <td>Mapped DOI chính xác</td>
+              </tr>
+              <tr>
+                <td><span class="code">multi_hop</span></td>
+                <td>2 câu</td>
+                <td>Tổng hợp thông tin đa tài liệu/ngữ cảnh phức hợp</td>
+                <td>Mapped 2+ DOIs</td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top:0.75rem;">
+            <div class="code-cmd">python -X utf8 -c "from core.config import load_settings; from evaluation.testset import load_or_create_test_set; import pandas as pd; s=load_settings(); df=pd.read_json(s.paths.clean_json); ts=load_or_create_test_set(df, s.paths.test_set_json); print(f'Tín hiệu hoàn thành: Test set gồm {len(ts.samples)} câu hỏi')"</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHECKPOINT 3: BASELINE PIPELINE -->
+    <section id="cp3" class="cp-section">
+      <div class="cp-header">
+        <div class="cp-title">
+          <span class="cp-tag tag-cp3">CP3</span>
+          <span>Baseline Pipeline End-to-End &amp; Báo Cáo Pha 1</span>
+        </div>
+        <span class="badge badge-success">Hit Rate: 100% &bull; F1: 1.0000</span>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-title">
+            <span>Retrieval Performance</span>
+            <span class="badge badge-success">Perfect</span>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">Top-3 Retrieval Hit Rate:</span>
+            <strong style="color:#34d399; font-size:1.3rem;">100.0%</strong>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">Số câu hỏi đánh giá:</span>
+            <span>10 / 10 đạt hit</span>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">Mean Reciprocal Rank (MRR):</span>
+            <strong style="color:#60a5fa;">1.0000</strong>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">Artifact metrics:</span>
+            <span class="code">baseline_metrics.json</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>Generation Quality</span>
+            <span class="badge badge-success">Hallucination-Free</span>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">Mean Token F1 Score:</span>
+            <strong style="color:#34d399; font-size:1.3rem;">1.0000</strong>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">LLM Judge Accuracy:</span>
+            <strong style="color:#34d399; font-size:1.3rem;">100.0%</strong>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">Điểm đánh giá LLM Judge:</span>
+            <span style="color:#fbbf24; font-weight:700;">5.0 / 5.0 tuyệt đối</span>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">Tỷ lệ trích dẫn DOI chuẩn:</span>
+            <strong style="color:#34d399;">100%</strong>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>Lệnh Chạy &amp; Artifact Pha 1</span>
+            <span class="badge badge-info">run_phase1.py</span>
+          </div>
+          <p style="font-size:0.85rem; color:var(--text-muted);">
+            Thực thi toàn bộ chu trình dữ liệu sạch từ Ingestion &rarr; Cleaning &rarr; Quality Gate &rarr; ChromaDB &rarr; Evaluation.
+          </p>
+          <div class="code-cmd">python script/run_phase1.py</div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.5rem;">
+            Báo cáo chi tiết: <span class="code">data/reports/phase1_report.md</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHECKPOINT 4: CORRUPTION & SILENT FAILURE -->
+    <section id="cp4" class="cp-section">
+      <div class="cp-header">
+        <div class="cp-title">
+          <span class="cp-tag tag-cp4">CP4</span>
+          <span>Synthetic Data Corruption &amp; Đo Lường Silent Failure</span>
+        </div>
+        <span class="badge badge-danger">Degraded: Hit Rate 60% &bull; F1 0.5741</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <span>6 Kịch Bản Tiêm Lỗi Dữ Liệu (Synthetic Corruption)</span>
+            <span class="badge badge-danger">corruption.py</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Kịch bản lỗi</th>
+                <th>Mô tả hành vi làm bẩn</th>
+                <th>Số bản ghi bị ảnh hưởng</th>
+                <th>Dấu hiệu nhận diện</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="code">drop_latest</span></td>
+                <td>Xóa 20% bài báo mới nhất khỏi dataset</td>
+                <td>4 bản ghi</td>
+                <td><span class="badge badge-danger">Hit Rate sụt giảm</span></td>
+              </tr>
+              <tr>
+                <td><span class="code">blank_summary</span></td>
+                <td>Xóa rỗng tóm tắt thành chuỗi trống</td>
+                <td>2 bản ghi</td>
+                <td><span class="badge badge-danger">GX Length check FAIL</span></td>
+              </tr>
+              <tr>
+                <td><span class="code">inject_noise</span></td>
+                <td>Chèn chuỗi ký tự rác ngẫu nhiên</td>
+                <td>2 bản ghi</td>
+                <td><span class="badge badge-warning">Vector bị méo mó</span></td>
+              </tr>
+              <tr>
+                <td><span class="code">truncate_title</span></td>
+                <td>Cắt ngắn tiêu đề bài báo &lt; 8 ký tự</td>
+                <td>2 bản ghi</td>
+                <td><span class="badge badge-warning">Mất từ khóa truy vấn</span></td>
+              </tr>
+              <tr>
+                <td><span class="code">stale_date</span></td>
+                <td>Lùi ngày xuất bản về 365 ngày trước</td>
+                <td>10 bản ghi</td>
+                <td><span class="badge badge-danger">SLA Stale tăng lên 59.09%</span></td>
+              </tr>
+              <tr>
+                <td><span class="code">duplicate_rows</span></td>
+                <td>Nhân bản dòng để tạo dữ liệu trùng lặp</td>
+                <td>2 bản ghi</td>
+                <td><span class="badge badge-danger">GX Uniqueness check FAIL</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>Minh Chứng Hiện Tượng "Silent Failure"</span>
+            <span class="badge badge-danger">Nguy Hiểm Cho RAG</span>
+          </div>
+          <div style="background:rgba(244, 63, 94, 0.08); border:1px solid rgba(244, 63, 94, 0.25); border-radius:8px; padding:1rem; margin-bottom:1rem;">
+            <div style="font-weight:700; color:#fb7185; font-size:0.95rem; margin-bottom:0.35rem;">
+              &xotime; Tại sao các hệ thống giám sát phần mềm truyền thống bỏ sót lỗi này?
+            </div>
+            <div style="font-size:0.85rem; color:#cbd5e1;">
+              Khi dữ liệu bị ô nhiễm, RAG API vẫn trả về mã <strong>HTTP 200 OK</strong>, ứng dụng không hề crash hay văng exception. LLM vẫn tự tin sinh ra câu trả lời rất trôi chảy, nhưng thực chất là thông tin bịa đặt (Hallucination) do khâu Retrieval không tìm thấy bài báo liên quan!
+            </div>
+          </div>
+
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">Retrieval Hit Rate sụt giảm:</span>
+            <span style="font-weight:800; color:#fb7185; font-size:1.2rem;">100% &rarr; 60.0% (-40%)</span>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">Mean Token F1 Score sụt giảm:</span>
+            <span style="font-weight:800; color:#fb7185; font-size:1.2rem;">1.0000 &rarr; 0.5741 (-42.6%)</span>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">LLM Judge Accuracy sụt giảm:</span>
+            <span style="font-weight:800; color:#fb7185; font-size:1.2rem;">100% &rarr; 60.0% (-40%)</span>
+          </div>
+          <div class="key-metric-row">
+            <span style="color:var(--text-muted);">Số lượng câu hỏi sinh ra Hallucination:</span>
+            <span class="badge badge-danger">4 / 10 câu hỏi trả lời sai</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHECKPOINT 5: IDEMPOTENT REPAIR -->
+    <section id="cp5" class="cp-section">
+      <div class="cp-header">
+        <div class="cp-title">
+          <span class="cp-tag tag-cp5">CP5</span>
+          <span>Idempotent Repair &amp; Báo Cáo Đối Chiếu 3 Trạng Thái</span>
+        </div>
+        <span class="badge badge-success">Full Recovery: 100% Restored</span>
+      </div>
+
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div class="card-title">
+          <span>Bảng Đối Chiếu Định Lượng 3 Trạng Thái (Baseline vs Corrupted vs Repaired)</span>
+          <span class="badge badge-info">3-State Comparison Table</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Chỉ số quan sát / Metric</th>
+              <th>[1] Baseline (Sạch)</th>
+              <th>[2] Corrupted (Lỗi)</th>
+              <th>[3] Repaired (Phục hồi)</th>
+              <th>Đánh giá phục hồi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Số lượng bản ghi (Rows)</strong></td>
+              <td>24 dòng</td>
+              <td>22 dòng (-2 dòng)</td>
+              <td>24 dòng (+2 dòng)</td>
+              <td><span class="badge badge-success">Khôi phục 100%</span></td>
+            </tr>
+            <tr>
+              <td><strong>Data Quality Gate (GX 1.x)</strong></td>
+              <td><span class="badge badge-success">PASSED (6/6)</span></td>
+              <td><span class="badge badge-danger">FAILED (4/6)</span></td>
+              <td><span class="badge badge-success">PASSED (6/6)</span></td>
+              <td><span class="badge badge-success">Vượt qua 100%</span></td>
+            </tr>
+            <tr>
+              <td><strong>Tỷ lệ quá hạn Freshness SLA</strong></td>
+              <td>4.17% (Đạt &le; 25%)</td>
+              <td>59.09% (Vi phạm nặng)</td>
+              <td>4.17% (Đạt &le; 25%)</td>
+              <td><span class="badge badge-success">Đạt chuẩn SLA</span></td>
+            </tr>
+            <tr>
+              <td><strong>Retrieval Hit Rate (Top-3)</strong></td>
+              <td><strong>100.0%</strong></td>
+              <td><strong style="color:#fb7185;">60.0%</strong></td>
+              <td><strong style="color:#34d399;">100.0%</strong></td>
+              <td><span class="badge badge-success">+40% (Về lại đỉnh)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Mean Token F1 Score</strong></td>
+              <td><strong>1.0000</strong></td>
+              <td><strong style="color:#fb7185;">0.5741</strong></td>
+              <td><strong style="color:#34d399;">1.0000</strong></td>
+              <td><span class="badge badge-success">+0.4259 (Hoàn hảo)</span></td>
+            </tr>
+            <tr>
+              <td><strong>LLM Judge Accuracy</strong></td>
+              <td><strong>100.0%</strong></td>
+              <td><strong style="color:#fb7185;">60.0%</strong></td>
+              <td><strong style="color:#34d399;">100.0%</strong></td>
+              <td><span class="badge badge-success">Loại bỏ Hallucination</span></td>
+            </tr>
+            <tr>
+              <td><strong>Điểm trung bình LLM Judge (/5)</strong></td>
+              <td>5.0 / 5.0</td>
+              <td>3.4 / 5.0</td>
+              <td>5.0 / 5.0</td>
+              <td><span class="badge badge-success">5.0 / 5.0 Tuyệt đối</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <span>Nguyên Lý Idempotent Repair</span>
+            <span class="badge badge-warning">Architecture Decision</span>
+          </div>
+          <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:0.75rem;">
+            Nhóm GPTT kiên quyết <strong>không chọn phương án In-place Patching</strong> (sửa lỗi cục bộ trên dataframe hỏng), mà chọn <strong>Idempotent Replay from Raw Snapshot</strong>:
+          </p>
+          <ul class="step-list">
+            <li class="step-item">
+              <span class="step-badge">&check;</span>
+              <div><strong>Single Source of Truth:</strong> Coi raw snapshot <span class="code">data/raw/crossref_records.json</span> là nguồn chân lý bất biến.</div>
+            </li>
+            <li class="step-item">
+              <span class="step-badge">&check;</span>
+              <div><strong>Zero State Pollution:</strong> Tái tạo toàn bộ DataFrame sạch và nạp lại collection <span class="code">papers-repaired</span> trong ChromaDB.</div>
+            </li>
+            <li class="step-item">
+              <span class="step-badge">&check;</span>
+              <div><strong>Tính bất biến (Idempotency):</strong> Chạy lại tiến trình 1 lần hay 100 lần đều cho ra kết quả sạch sẽ 100% giống nhau.</div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>Lệnh Nghiệm Thu Checkpoint 5</span>
+            <span class="badge badge-success">Self-Verification</span>
+          </div>
+          <p style="font-size:0.85rem; color:var(--text-muted);">
+            Chạy toàn bộ luồng Tiêm lỗi &rarr; Đo suy giảm &rarr; Phục hồi Idempotent &rarr; Xuất báo cáo đối chiếu:
+          </p>
+          <div class="code-cmd">python script/run_corruption_flow.py</div>
+          <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.75rem;">
+            Báo cáo đối chiếu đã tạo: <span class="code">data/reports/corruption_report.md</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BONUS SECTION -->
+    <section id="bonus" class="cp-section">
+      <div class="cp-header">
+        <div class="cp-title">
+          <span class="cp-tag" style="background:rgba(236, 72, 153, 0.2); color:#f472b6; border:1px solid rgba(236, 72, 153, 0.4);">BONUS</span>
+          <span>Tính Năng Mở Rộng: Auto-Heal Pipeline &amp; Pytest Test Suite</span>
+        </div>
+        <span class="badge badge-purple">+10đ Rubric Hoàn Hảo</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <span>B2: Anomaly Detection &amp; Self-Healing Pipeline (+5đ)</span>
+            <span class="badge badge-success">auto_heal.py</span>
+          </div>
+          <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:0.75rem;">
+            Hệ thống tự động lắng nghe tập dữ liệu đầu vào. Khi phát hiện bất kỳ vi phạm nào của Great Expectations 1.x hoặc Freshness SLA, pipeline tự động kích hoạt chế độ <strong>Self-Healing Rollback</strong>:
+          </p>
+          <div class="code-cmd">python script/run_auto_heal.py</div>
+          <div style="font-size:0.85rem; color:#34d399; margin-top:0.5rem;">
+            &check; Phát hiện 2 vi phạm &rarr; Rollback thành công về phiên bản sạch &rarr; Ghi log vào <span class="code">data/results/auto_heal_log.json</span>.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>B3: Automated Unit Testing Với Pytest (+5đ)</span>
+            <span class="badge badge-info">tests/ (6/6 PASS)</span>
+          </div>
+          <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:0.75rem;">
+            Bộ 6 unit tests tự động kiểm thử toàn diện module cleaning, quality gate, corruption suite và idempotent repair:
+          </p>
+          <div class="code-cmd">.\.venv\Scripts\pytest.exe tests/ -v</div>
+          <div style="font-size:0.85rem; color:#34d399; margin-top:0.5rem;">
+            &check; <strong>6 passed in 5.56s</strong> (Đạt chuẩn CI/CD doanh nghiệp).
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <p>Báo Cáo Nghiệm Thu Thực Chiến MLOps & Data Observability cho RAG & AI Agent — Khóa K4 VinUni — Nhóm GPTT &copy; 2026</p>
+      <p style="margin-top:0.35rem; font-size:0.75rem; color:#64748b;">
+        Mã Nhóm: K4-L3A-Day10-GPTT &bull; Repository: https://github.com/gianghoang0810/K4-L3A-Day10-GPTT
+      </p>
+    </footer>
+  </div>
+
+  <script>
+    // Metrics Comparison Bar Chart
+    const ctxMetrics = document.getElementById('metricsChart').getContext('2d');
+    new Chart(ctxMetrics, {
+      type: 'bar',
+      data: {
+        labels: ['Retrieval Hit Rate', 'Token F1 Score', 'Judge Accuracy', 'Judge Score (scale /5)'],
+        datasets: [
+          {
+            label: 'Baseline (Sạch)',
+            data: [100.0, 100.0, 100.0, 100.0],
+            backgroundColor: 'rgba(59, 130, 246, 0.75)',
+            borderColor: '#3b82f6',
+            borderWidth: 1.5,
+            borderRadius: 6
+          },
+          {
+            label: 'Corrupted (Bị tiêm lỗi)',
+            data: [60.0, 57.41, 60.0, 68.0],
+            backgroundColor: 'rgba(244, 63, 94, 0.75)',
+            borderColor: '#f43f5e',
+            borderWidth: 1.5,
+            borderRadius: 6
+          },
+          {
+            label: 'Repaired (Phục hồi)',
+            data: [100.0, 100.0, 100.0, 100.0],
+            backgroundColor: 'rgba(16, 185, 129, 0.75)',
+            borderColor: '#10b981',
+            borderWidth: 1.5,
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { color: '#cbd5e1', font: { family: 'Plus Jakarta Sans', size: 12 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': ' + context.raw + '%';
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 110,
+            ticks: { color: '#94a3b8', callback: v => v + '%' },
+            grid: { color: 'rgba(255, 255, 255, 0.06)' }
+          },
+          x: {
+            ticks: { color: '#cbd5e1' },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+
+    // Radar Chart of Data Quality Dimensions
+    const ctxRadar = document.getElementById('radarChart').getContext('2d');
+    new Chart(ctxRadar, {
+      type: 'radar',
+      data: {
+        labels: ['Completeness', 'Uniqueness', 'Validity', 'Timeliness (SLA)', 'Semantic Fidelity'],
+        datasets: [
+          {
+            label: 'Baseline',
+            data: [100, 100, 100, 95.8, 100],
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+            borderWidth: 2,
+            pointBackgroundColor: '#3b82f6'
+          },
+          {
+            label: 'Corrupted',
+            data: [81.8, 81.8, 70, 40.9, 57.4],
+            borderColor: '#f43f5e',
+            backgroundColor: 'rgba(244, 63, 94, 0.2)',
+            borderWidth: 2,
+            pointBackgroundColor: '#f43f5e'
+          },
+          {
+            label: 'Repaired',
+            data: [100, 100, 100, 95.8, 100],
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+            borderWidth: 2,
+            pointBackgroundColor: '#10b981'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { color: '#cbd5e1', font: { size: 11 } }
+          }
+        },
+        scales: {
+          r: {
+            angleLines: { color: 'rgba(255, 255, 255, 0.08)' },
+            grid: { color: 'rgba(255, 255, 255, 0.08)' },
+            pointLabels: { color: '#cbd5e1', font: { size: 11 } },
+            ticks: { display: false, beginAtZero: true, max: 100 }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

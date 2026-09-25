@@ -25,20 +25,30 @@ class LocalEmbeddingIndex:
     def __init__(
         self,
         settings: Settings,
-        collection_name: str,
-        documents: list[dict[str, Any]],
-        persist_path: Path,
+        collection_name: str | None = None,
+        documents: list[dict[str, Any]] | None = None,
+        persist_path: Path | None = None,
     ):
         self.settings = settings
-        self.collection_name = collection_name
-        self.documents = documents
-        self.persist_path = persist_path
+        self.collection_name = collection_name or settings.baseline_collection_name
+        self.persist_path = persist_path or settings.paths.chroma_dir
+        self.documents = documents if documents is not None else []
         self.embedding_backend = "chroma"
         self.embedding_model = MiniLMEmbeddings(settings.embedding_model)
-        self.client = chromadb.PersistentClient(path=str(persist_path))
-        self.collection = self.client.get_collection(name=collection_name)
-        self.documents_by_paper_id = {document["paper_id"].lower(): document for document in documents}
-        self.documents_by_title = {document["title"].lower(): document for document in documents}
+        self.client = chromadb.PersistentClient(path=str(self.persist_path))
+        try:
+            self.collection = self.client.get_collection(name=self.collection_name)
+        except Exception:
+            self.collection = self.client.get_or_create_collection(
+                name=self.collection_name,
+                configuration={"hnsw": {"space": "cosine"}},
+            )
+        self.documents_by_paper_id = {
+            document["paper_id"].lower(): document for document in self.documents if "paper_id" in document
+        }
+        self.documents_by_title = {
+            document["title"].lower(): document for document in self.documents if "title" in document
+        }
 
     @staticmethod
     def _build_documents(df: pd.DataFrame) -> list[dict[str, Any]]:
@@ -172,3 +182,66 @@ class LocalEmbeddingIndex:
         if needle in self.documents_by_title:
             return self.documents_by_title[needle]
         return None
+
+    def build_from_clean(self, df: pd.DataFrame | None = None) -> None:
+        """Xay dung hoac nap lai vector index tu DataFrame hoac tu clean_json."""
+        if df is not None:
+            self.documents = self._build_documents(df)
+        elif not self.documents:
+            if self.settings.paths.clean_json.exists():
+                clean_df = pd.read_json(self.settings.paths.clean_json)
+                self.documents = self._build_documents(clean_df)
+
+        if not self.documents:
+            return
+
+        formatted_docs = []
+        for i, doc in enumerate(self.documents):
+            if "record_id" in doc and "content" in doc:
+                formatted_docs.append(doc)
+            else:
+                pid = str(doc.get("paper_id", f"doc_{i}"))
+                title = str(doc.get("title", ""))
+                content = str(doc.get("text_for_embedding") or doc.get("content") or doc.get("summary") or "")
+                formatted_docs.append(
+                    {
+                        "record_id": f"{pid}::{i}",
+                        "paper_id": pid,
+                        "title": title,
+                        "content": content,
+                        "metadata": {
+                            "paper_id": pid,
+                            "title": title,
+                            "published": str(doc.get("published", "")),
+                            "authors_joined": str(doc.get("authors_joined", "")),
+                            "categories_joined": str(doc.get("categories_joined", "")),
+                            "summary": str(doc.get("summary", "")),
+                            "abs_url": str(doc.get("abs_url", "")),
+                            "pdf_url": str(doc.get("pdf_url", "")),
+                        },
+                    }
+                )
+        self.documents = formatted_docs
+        self.documents_by_paper_id = {d["paper_id"].lower(): d for d in self.documents if "paper_id" in d}
+        self.documents_by_title = {d["title"].lower(): d for d in self.documents if "title" in d}
+
+        try:
+            self.client.delete_collection(name=self.collection_name)
+        except Exception:
+            pass
+        self.collection = self.client.create_collection(
+            name=self.collection_name,
+            configuration={"hnsw": {"space": "cosine"}},
+        )
+        embeddings = self.embedding_model.embed_documents([d["content"] for d in self.documents])
+        self.collection.add(
+            ids=[d["record_id"] for d in self.documents],
+            embeddings=embeddings,
+            documents=[d["content"] for d in self.documents],
+            metadatas=[d["metadata"] for d in self.documents],
+        )
+
+    def semantic_search(self, query: str, top_k: int | None = None) -> list[SearchResult]:
+        """Bi danh cho phuong thuc search()."""
+        return self.search(query, top_k=top_k)
+

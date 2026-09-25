@@ -1,0 +1,145 @@
+{
+  "report_name": "corrupted",
+  "success": false,
+  "total_checks": 6,
+  "passed_checks": 4,
+  "failed_checks": 2,
+  "results": [
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "success": true,
+      "result": {
+        "observed_value": 24
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "success": true,
+      "result": {
+        "element_count": 24,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "partial_unexpected_list": [],
+        "partial_unexpected_counts": [],
+        "partial_unexpected_index_list": []
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_unique",
+      "success": false,
+      "result": {
+        "element_count": 24,
+        "unexpected_count": 8,
+        "unexpected_percent": 33.33333333333333,
+        "partial_unexpected_list": [
+          "10.1145/3637528.3671802",
+          "10.1145/3637528.3671824",
+          "10.1145/3637528.3671823",
+          "10.1145/3637528.3671822",
+          "10.1145/3637528.3671802",
+          "10.1145/3637528.3671824",
+          "10.1145/3637528.3671823",
+          "10.1145/3637528.3671822"
+        ],
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_percent_total": 33.33333333333333,
+        "unexpected_percent_nonmissing": 33.33333333333333,
+        "partial_unexpected_counts": [
+          {
+            "value": "10.1145/3637528.3671802",
+            "count": 2
+          },
+          {
+            "value": "10.1145/3637528.3671822",
+            "count": 2
+          },
+          {
+            "value": "10.1145/3637528.3671823",
+            "count": 2
+          },
+          {
+            "value": "10.1145/3637528.3671824",
+            "count": 2
+          }
+        ],
+        "partial_unexpected_index_list": [
+          0,
+          1,
+          2,
+          3,
+          20,
+          21,
+          22,
+          23
+        ]
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "success": true,
+      "result": {
+        "element_count": 24,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "partial_unexpected_list": [],
+        "partial_unexpected_counts": [],
+        "partial_unexpected_index_list": []
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "success": true,
+      "result": {
+        "element_count": 24,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "partial_unexpected_list": [],
+        "partial_unexpected_counts": [],
+        "partial_unexpected_index_list": []
+      }
+    },
+    {
+      "expectation_type": "expect_column_value_lengths_to_be_between",
+      "success": false,
+      "result": {
+        "element_count": 24,
+        "unexpected_count": 4,
+        "unexpected_percent": 16.666666666666664,
+        "partial_unexpected_list": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_percent_total": 16.666666666666664,
+        "unexpected_percent_nonmissing": 16.666666666666664,
+        "partial_unexpected_counts": [
+          {
+            "value": "",
+            "count": 4
+          }
+        ],
+        "partial_unexpected_index_list": [
+          0,
+          1,
+          20,
+          21
+        ]
+      }
+    }
+  ],
+  "freshness": {
+    "latest_published": "2026-06-04",
+    "oldest_published": "2021-06-06",
+    "stale_rows": 15,
+    "total_rows": 24,
+    "stale_ratio": 0.625,
+    "threshold_days": 180,
+    "max_stale_ratio_allowed": 0.25,
+    "is_fresh": false
+  },
+  "timestamp": "2026-09-25T10:10:03.120593+00:00"
+}

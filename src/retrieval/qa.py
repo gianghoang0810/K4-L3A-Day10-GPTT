@@ -24,7 +24,7 @@ def _extract_answer(question: str, top_result: SearchResult) -> str:
         return metadata["authors_joined"]
     if "when was" in lowered or "publication date" in lowered or "published on" in lowered:
         return metadata["published"]
-    if "what categories" in lowered:
+    if "what categories" in lowered or "what category" in lowered or "category" in lowered or "categories" in lowered:
         return metadata["categories_joined"]
     return first_sentence(metadata["summary"])
 
