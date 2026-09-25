@@ -420,18 +420,18 @@
           <div class="kpi-label">Retrieval Hit Rate (Top-3)</div>
           <div class="kpi-value">
             100%
-            <span class="badge badge-success">+40% Recovery</span>
+            <span class="badge badge-success">+50% Recovery</span>
           </div>
-          <div class="kpi-sub">Baseline: 100% &rarr; Corrupted: 60% &rarr; Repaired: 100%</div>
+          <div class="kpi-sub">Baseline: 100% &rarr; Corrupted: 50% &rarr; Repaired: 100%</div>
         </div>
 
         <div class="card kpi-card">
           <div class="kpi-label">Token F1 Score</div>
           <div class="kpi-value">
             1.0000
-            <span class="badge badge-success">+0.4259</span>
+            <span class="badge badge-success">+0.4000</span>
           </div>
-          <div class="kpi-sub">Baseline: 1.000 &rarr; Corrupted: 0.5741 &rarr; Repaired: 1.000</div>
+          <div class="kpi-sub">Baseline: 1.000 &rarr; Corrupted: 0.600 &rarr; Repaired: 1.000</div>
         </div>
 
         <div class="card kpi-card">
@@ -845,7 +845,7 @@
           <span class="cp-tag tag-cp4">CP4</span>
           <span>Synthetic Data Corruption &amp; Đo Lường Silent Failure</span>
         </div>
-        <span class="badge badge-danger">Degraded: Hit Rate 60% &bull; F1 0.5741</span>
+        <span class="badge badge-danger">Degraded: Hit Rate 50% &bull; F1 0.6000</span>
       </div>
 
       <div class="grid-2">
@@ -890,14 +890,14 @@
               </tr>
               <tr>
                 <td><span class="code">stale_date</span></td>
-                <td>Lùi ngày xuất bản về 365 ngày trước</td>
+                <td>Lùi ngày xuất bản về 5 năm trước</td>
                 <td>10 bản ghi</td>
                 <td><span class="badge badge-danger">SLA Stale tăng lên 59.09%</span></td>
               </tr>
               <tr>
                 <td><span class="code">duplicate_rows</span></td>
-                <td>Nhân bản dòng để tạo dữ liệu trùng lặp</td>
-                <td>2 bản ghi</td>
+                <td>Nhân bản dòng để bù trừ đủ 24 dòng và tạo trùng lặp</td>
+                <td>4 bản ghi</td>
                 <td><span class="badge badge-danger">GX Uniqueness check FAIL</span></td>
               </tr>
             </tbody>
@@ -920,11 +920,11 @@
 
           <div class="key-metric-row">
             <span style="color:var(--text-muted);">Retrieval Hit Rate sụt giảm:</span>
-            <span style="font-weight:800; color:#fb7185; font-size:1.2rem;">100% &rarr; 60.0% (-40%)</span>
+            <span style="font-weight:800; color:#fb7185; font-size:1.2rem;">100% &rarr; 50.0% (-50%)</span>
           </div>
           <div class="key-metric-row">
             <span style="color:var(--text-muted);">Mean Token F1 Score sụt giảm:</span>
-            <span style="font-weight:800; color:#fb7185; font-size:1.2rem;">1.0000 &rarr; 0.5741 (-42.6%)</span>
+            <span style="font-weight:800; color:#fb7185; font-size:1.2rem;">1.0000 &rarr; 0.6000 (-40.0%)</span>
           </div>
           <div class="key-metric-row">
             <span style="color:var(--text-muted);">LLM Judge Accuracy sụt giảm:</span>
@@ -967,14 +967,14 @@
             <tr>
               <td><strong>Số lượng bản ghi (Rows)</strong></td>
               <td>24 dòng</td>
-              <td>22 dòng (-2 dòng)</td>
-              <td>24 dòng (+2 dòng)</td>
+              <td>24 dòng (Bù trừ nhân bản)</td>
+              <td>24 dòng (Nguyên bản)</td>
               <td><span class="badge badge-success">Khôi phục 100%</span></td>
             </tr>
             <tr>
               <td><strong>Data Quality Gate (GX 1.x)</strong></td>
               <td><span class="badge badge-success">PASSED (6/6)</span></td>
-              <td><span class="badge badge-danger">FAILED (4/6)</span></td>
+              <td><span class="badge badge-danger">FAILED (Vi phạm)</span></td>
               <td><span class="badge badge-success">PASSED (6/6)</span></td>
               <td><span class="badge badge-success">Vượt qua 100%</span></td>
             </tr>
@@ -988,16 +988,16 @@
             <tr>
               <td><strong>Retrieval Hit Rate (Top-3)</strong></td>
               <td><strong>100.0%</strong></td>
-              <td><strong style="color:#fb7185;">60.0%</strong></td>
+              <td><strong style="color:#fb7185;">50.0%</strong></td>
               <td><strong style="color:#34d399;">100.0%</strong></td>
-              <td><span class="badge badge-success">+40% (Về lại đỉnh)</span></td>
+              <td><span class="badge badge-success">+50% (Về lại đỉnh)</span></td>
             </tr>
             <tr>
               <td><strong>Mean Token F1 Score</strong></td>
               <td><strong>1.0000</strong></td>
-              <td><strong style="color:#fb7185;">0.5741</strong></td>
+              <td><strong style="color:#fb7185;">0.6000</strong></td>
               <td><strong style="color:#34d399;">1.0000</strong></td>
-              <td><span class="badge badge-success">+0.4259 (Hoàn hảo)</span></td>
+              <td><span class="badge badge-success">+0.4000 (Hoàn hảo)</span></td>
             </tr>
             <tr>
               <td><strong>LLM Judge Accuracy</strong></td>
@@ -1126,7 +1126,7 @@
           },
           {
             label: 'Corrupted (Bị tiêm lỗi)',
-            data: [60.0, 57.41, 60.0, 68.0],
+            data: [50.0, 60.0, 60.0, 68.0],
             backgroundColor: 'rgba(244, 63, 94, 0.75)',
             borderColor: '#f43f5e',
             borderWidth: 1.5,
